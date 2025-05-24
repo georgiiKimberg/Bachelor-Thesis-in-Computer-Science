@@ -1,0 +1,131 @@
+--family 1
+
+familyEquigeneratedCompleteIntersections = (n,a) -> (
+    k = ZZ/5557;
+    R = k[x_1..x_n];
+    I = ideal apply(gens R, i -> i^a);
+    S = R/I;
+    for i from 0 to (n*(a-1)) list hilbertFunction(i,S)
+);
+
+outputFile = openOut "output1family.txt";
+for n from 2 to 15 do (
+    for a from 2 to 15 do (
+        seq = familyEquigeneratedCompleteIntersections(n,a);
+        -- Запись в требуемом формате: "n;{a};{sekvens}"
+        outputFile << n << ";{" << a << "};" << toString(seq) << "\n";
+    )
+);
+close outputFile
+
+--family 2
+
+familyCompleteIntersections = (n, al) -> (
+    k = ZZ/5557;
+    R = k[y_1..y_n];
+    I = ideal apply(#gens R, i -> R_i^(al#i));
+    S = R/I;
+    for i from 0 to (sum al - n) list hilbertFunction(i, S)
+);
+
+outFile = openOut "output2family.txt";
+
+
+genAndComputeRange = (nMin, nMax, lower, upper) -> (
+    for n from nMin to nMax do (
+        backtrack = (pos, start, part) -> (
+            if pos == n then (
+                count = count + 1;
+                sekvens = familyCompleteIntersections(n, part);
+                outFile << n << ";" 
+                        << toString(part) << ";" 
+                        << toString(sekvens) << "\n";
+            )
+            else (
+                for val from start to upper do (
+                    backtrack(pos+1, val, part | {val})
+                )
+            )
+        );
+        backtrack(0, lower, {});
+    );
+);
+
+genAndComputeRange(2, 15, 2, 7);
+close outFile;
+
+
+--family 3
+
+familyEquigeneratedAlmostCompleteIntersections = (n,a) -> (
+    k = ZZ/5557;
+    R = k[x_1..x_n];
+    I = ideal apply(gens R, i -> i^a) + ideal((sum gens R)^a);
+    S = R/I;
+    for i from 0 to (n*(a-1)) list hilbertFunction(i,S)
+);
+
+outFile = openOut "output3family.txt";
+´
+for n from 2 to 10 do (
+    for a from 2 to 10 do (
+        seq = familyEquigeneratedAlmostCompleteIntersections(n,a);
+        outFile << n << ";{" << a << "};" << toString(seq) << "\n";
+    )
+);
+
+close outFile;
+
+
+--family 4
+
+familyPowerOfnplus2GeneralLinearForms = (n, al) -> (
+     d := (sum al) // (# al);
+     k := ZZ/5557;
+     R := k[x_1..x_n];
+     I := ideal apply(#gens R, i -> R_i^(al#i));
+     J := ideal((sum gens R)^(al#n), (random(1,R))^(al#(n+1)));
+     S := R/(I+J);
+     return for i from 0 to n*(d-1) list hilbertFunction(i,S);
+);
+
+multiSubsets = (L, r) -> (
+    if r == 0 then (
+        return { {} }
+    );
+    if #L == 0 then (
+        return {}
+    );
+    v = first L;
+    W = rest L;
+    withV = if r > 0 then (
+        for m in multiSubsets(L, r-1) list sort(concatenate({v}, m))
+    ) else {};
+    withoutV = multiSubsets(W, r);
+    return uniquify(concatenate({withV, withoutV}));
+);
+
+outFile = openOut "output4family.txt";
+
+-- I manually choosed n here g´for desired range
+for n from 5 to 8 list (
+    M = if (n <= 6) then 7 else if (n == 7) then 5 else 4;
+    r = n+2;
+    allAl = multiSubsets(toList(1..M), r);
+    for al in allAl list (
+        seq = familyPowerOfnplus2GeneralLinearForms(n, al);
+        outFile << n << ";{" << toString(al) << "};{" << toString(seq) << "}\n";
+    );
+    stdio << "Finished computations for n=" << n << 
+             ", total combos = " << #allAl << "\n";
+);
+
+close(outFile);
+
+
+
+
+
+
+
+
