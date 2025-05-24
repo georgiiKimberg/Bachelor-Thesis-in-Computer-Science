@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{%block title%}{% endblock %}</title>
+        <style>
+            body {
+                background-color: #f8f9fa; /* Светлый фон */
+                font-family: Arial, sans-serif;
+            }
+    
+            /* Центрирование формы и увеличение ширины поля ввода */
+            form {
+                width: 50%;
+                margin: 20px auto; /* Центрирование формы */
+                padding: 20px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            }
+    
+            input[type="text"] {
+                width: 100%; /* Сделать поле ввода шире */
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                display: block;
+                margin-bottom: 10px;
+            }
+    
+            input[type="submit"] {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                cursor: pointer;
+                font-size: 16px;
+                border-radius: 5px;
+                display: block;
+                width: 100%;
+            }
+    
+            input[type="submit"]:hover {
+                background-color: #0056b3;
+            }
+    
+            /* Фильтр семейства */
+            fieldset {
+                margin-bottom: 15px;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+    
+            /* Отступы между результатами */
+            .result-container {
+                margin-bottom: 15px;
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+            .highlight {
+                color: red; /* Цвет совпадения */
+                font-size: 20px; /* Увеличенный размер */
+                font-weight: bold; /* Жирный шрифт */
+                background-color: yellow; /* Жёлтый фон */
+                padding: 2px 5px; /* Добавить немного отступов */
+                border-radius: 5px; /* Закруглить углы */
+            }
+            .family-highlight {
+                font-weight: bold;
+            }
+            .family-1 { color: blue; }
+            .family-2 { color: green; }
+            .family-3 { color: orange; }
+            .family-4 { color: purple; }
+
+
+        
+        </style>
+    </head>
+    
+</head>
+<body>
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

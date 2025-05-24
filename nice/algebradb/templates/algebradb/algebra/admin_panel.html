@@ -1,0 +1,111 @@
+{% extends "algebradb/base.html" %}
+{% block title %}Control Panel{% endblock %}
+
+{% block content %}
+<h1>Control Panel</h1>
+
+<!-- === Загрузка файла === -->
+<div id="uploadSection">
+  <h2>Add sequences (load txt-file)</h2>
+  <form id="uploadForm" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="fileInput">Select txt-file:</label>
+    <input type="file" id="fileInput" name="file" accept=".txt" required>
+    <br><br>
+    <label for="familyInput">Input family number:</label>
+    <input type="number" id="familyInput" name="family" min="1" required>
+    <br><br>
+    <button type="submit">Upload</button>
+  </form>
+  <div id="uploadMessage"></div>
+</div>
+
+<hr>
+
+<!-- === Удаление записей === -->
+<div id="deleteSection">
+  <h2>Delete sequences</h2>
+  <form id="deleteForm" method="post">
+    {% csrf_token %}
+    <label for="nParamInput">n_param:</label>
+    <input type="number" id="nParamInput" name="n_param">
+    <br><br>
+    <label for="aParamInput">a_param:</label>
+    <input type="number" id="aParamInput" name="a_param">
+    <br><br>
+    <label for="sekvensInput">sekvens:</label>
+    <input type="text" id="sekvensInput" name="sekvens">
+    <br><br>
+    <label for="familyDeleteInput">family:</label>
+    <input type="number" id="familyDeleteInput" name="family" min="1" required>
+    <br><br>
+    <button type="submit">Delete</button>
+  </form>
+  <div id="deleteMessage"></div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  // === загрузка файла (осталось прежнее) ===
+  const uploadForm = document.getElementById("uploadForm");
+  const uploadMessage = document.getElementById("uploadMessage");
+  uploadForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    const formData = new FormData(uploadForm);
+    fetch("{% url 'algebradb:add_entries' %}", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+        "Accept": "application/json"
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      // сюда придёт {status:"ok"} при успехе
+      uploadMessage.innerText = "File uploaded successfully";
+    })
+    .catch(err => {
+      console.error("Error via uploading", err);
+      uploadMessage.innerText = "Error";
+    });
+  });
+
+  // === удаление записей ===
+  const deleteForm = document.getElementById("deleteForm");
+  const deleteMessage = document.getElementById("deleteMessage");
+
+  deleteForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    const formData = new FormData(deleteForm);
+    fetch("{% url 'algebradb:delete_entries' %}", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+        "Accept": "application/json"
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        // если форма вернула ошибки валидации
+        return response.json().then(errData => { throw errData; });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // сюда придёт {status:"ok", message:"..."}
+      deleteMessage.innerText = data.message || "Sequences successfully deleted";
+    })
+    .catch(errorData => {
+      // если пришли ошибки валидации
+      if (errorData.errors) {
+        deleteMessage.innerText = Object.values(errorData.errors).flat().join(" ");
+      } else {
+        deleteMessage.innerText = "Error";
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
