@@ -1,0 +1,183 @@
+{% extends "algebradb/base.html" %}
+
+{% block title %}Project sida{% endblock %}
+
+{% block content %}
+  <h2>Sequence check</h2>
+  <form id="search-form" method="post">
+      {{ form.as_p }}
+
+      <!-- Family filter -->
+      <fieldset>
+        <legend>Family filter</legend>
+        {% for fam in families_lst %}
+          <label>
+            <input type="checkbox" name="families" value="{{ fam }}" checked>
+            Family {{ fam }}
+          </label>
+        {% endfor %}
+      </fieldset>
+      
+
+      {% csrf_token %}
+      <input type="submit" value="Search">
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const form = document.getElementById("search-form");
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        fetch("{% url 'algebradb:main_search' %}", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+            "Accept": "application/json"
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "";
+          
+          // Подготавливаем RegExp для выделения найденных чисел в последовательности
+          const searchSeq = document.querySelector("input[name='subseq']").value.trim();
+          let regex;
+          if (searchSeq) {
+            const cleanSeq = searchSeq.replace(/\s*,\s*/g, ",");
+            const regexPattern = cleanSeq.split(",").join("|");
+            regex = new RegExp(`\\b(${regexPattern})\\b`, "g");
+          }
+          
+          // Вывод общего количества совпадений
+          const totalElem = document.createElement("p");
+          totalElem.innerHTML = `<strong>Number of matching:</strong> ${data.total}`;
+          resultDiv.appendChild(totalElem);
+          
+          // Формируем массив объектов результатов
+          let results = [];
+          for (let i = 0; i < data.transfer.length; i++) {
+            results.push({
+              transfer: data.transfer[i],
+              params: data.params[i],
+              positions: data.positions[i]
+            });
+          }
+          
+          // Контейнер для кнопок сортировки
+          const buttonContainer = document.createElement("div");
+          buttonContainer.style.marginBottom = "10px";
+          
+          // Кнопка сортировки по позициям 
+          const sortPosButton = document.createElement("button");
+          sortPosButton.textContent = "Sort by first occurrence";
+          sortPosButton.id = "sort-pos-button";
+          buttonContainer.appendChild(sortPosButton);
+          sortPosButton.addEventListener("click", function() {
+            results.sort((a, b) => {
+              let posA = a.positions || [];
+              let posB = b.positions || [];
+              const maxLen = Math.max(posA.length, posB.length);
+              for (let i = 0; i < maxLen; i++) {
+                // Если элемент отсутствует или равен "-", считаем его как Infinity
+                const aVal = (i < posA.length && posA[i] !== "-") ? posA[i] : Infinity;
+                const bVal = (i < posB.length && posB[i] !== "-") ? posB[i] : Infinity;
+                if (aVal !== bVal) {
+                  return aVal - bVal;
+                }
+              }
+              return 0;
+            });
+            renderResults(results);
+          });
+
+          
+          // Кнопка сортировки по семье 
+          const sortFamilyButton = document.createElement("button");
+          sortFamilyButton.textContent = "Sort by family";
+          sortFamilyButton.id = "sort-family-button";
+          buttonContainer.appendChild(sortFamilyButton);
+          sortFamilyButton.addEventListener("click", function() {
+            results.sort((a, b) => {
+              return a.params[2] - b.params[2];
+            });
+            renderResults(results);
+          });
+          
+          // Кнопка сортировки по ai 
+          // Предположим, что a_param можно сравнить как число – например, берём первое число из строки
+          const sortAiButton = document.createElement("button");
+          sortAiButton.textContent = "Sort by ai ascending";
+          sortAiButton.id = "sort-ai-button";
+          buttonContainer.appendChild(sortAiButton);
+          sortAiButton.addEventListener("click", function() {
+            results.sort((a, b) => {
+              // Попытаемся извлечь число из a_param, если a_param – строка с запятыми, берём первое число
+              let aiA = parseFloat(String(a.params[1]).split(",")[0]) || Infinity;
+              let aiB = parseFloat(String(b.params[1]).split(",")[0]) || Infinity;
+              return aiA - aiB;
+            });
+            renderResults(results);
+          });
+          
+          resultDiv.appendChild(buttonContainer);
+          
+          // Функция для рендеринга результатов
+          function renderResults(resultsArray) {
+            // Очищаем блок результатов, но сохраняем контейнер с кнопками
+            resultDiv.innerHTML = "";
+            const totalElemNew = document.createElement("p");
+            totalElemNew.innerHTML = `<strong>Number of matchings:</strong> ${data.total}`;
+            resultDiv.appendChild(totalElemNew);
+            resultDiv.appendChild(buttonContainer);
+            
+            resultsArray.forEach(result => {
+              const container = document.createElement("div");
+              container.classList.add("result-container");
+              
+              // Обрабатываем текст последовательности с выделением совпадений 
+              let seqText = result.transfer;
+              if (regex) {
+                seqText = seqText.replace(regex, `<span class="highlight">$1</span>`);
+              }
+              const seqElem = document.createElement("p");
+              seqElem.innerHTML = `<strong>Sekvens:</strong> ${seqText}`;
+              container.appendChild(seqElem);
+              
+              // Выводим позиции справа от параметров
+              const posElem = document.createElement("p");
+              posElem.innerHTML = `<strong>Positions:</strong> ${result.positions.join(", ")}`;
+              container.appendChild(posElem);
+              
+              // Вывод параметров – для числа family выделяем жирным
+              if (result.params) {
+                const p = document.createElement("p");
+                p.innerHTML = `<strong>Params:</strong> n: ${result.params[0]}, a/ai: ${result.params[1]}, family: <span class="family-highlight family-${result.params[2]}">${result.params[2]}</span>`;
+                container.appendChild(p);
+              } else {
+                const p = document.createElement("p");
+                p.textContent = "No params";
+                container.appendChild(p);
+              }
+              
+              resultDiv.appendChild(container);
+            });
+          }
+          
+          // Рендерим результаты изначально
+          renderResults(results);
+        })
+        .catch(error => console.error("Error:", error));
+      });
+    });
+  </script>
+{% endblock %}
+
+
+
+
+

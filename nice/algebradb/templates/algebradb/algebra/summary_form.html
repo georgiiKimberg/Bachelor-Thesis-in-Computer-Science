@@ -1,0 +1,73 @@
+{% extends "algebradb/base.html" %}
+
+{% block title %}Sequence Summary{% endblock %}
+
+{% block content %}
+<h2>Sequence Summary</h2>
+<form id="summary-form" method="post">
+    {% csrf_token %}
+    <label for="start">Start:</label>
+    <input type="number" name="start" id="start" required>
+    <br>
+    <label for="end">End:</label>
+    <input type="number" name="end" id="end" required>
+    <br>
+
+    <!-- Фильтр по семьям -->
+    <fieldset>
+        <legend>Family filter</legend>
+        <label>
+            <input type="checkbox" name="families" value="1" checked> Family 1
+        </label>
+        <label>
+            <input type="checkbox" name="families" value="2" checked> Family 2
+        </label>
+        <label>
+            <input type="checkbox" name="families" value="3" checked> Family 3
+        </label>
+        <label>
+            <input type="checkbox" name="families" value="4" checked> Family 4
+        </label>
+    </fieldset>
+    <br>
+    <!-- Чекбокс для вывода только простых чисел -->
+    <label for="prime_only">Show only prime numbers</label>
+    <input type="checkbox" name="prime_only" id="prime_only">
+    <br>
+    
+    <input type="submit" value="Get Summary">
+</form>
+
+<!-- Блок для вывода результатов -->
+<div id="summary-result"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("summary-form");
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        fetch("{% url 'algebradb:sequence_summary' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+                "Accept": "application/json"
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById("summary-result");
+            resultDiv.innerHTML = "";
+            // Выводим результаты: например, "512: 1000", "513: 270" и т.д.
+            for (let key in data) {
+                let p = document.createElement("p");
+                p.textContent = `${key}: ${data[key]}`;
+                resultDiv.appendChild(p);
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    });
+});
+</script>
+{% endblock %}
